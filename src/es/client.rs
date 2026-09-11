@@ -1,7 +1,9 @@
 use super::pool;
+use super::pool::SqlFlavor;
 use crate::error::PluginError;
 use crate::es::models::{EsqlResponse, Index, IndexMapping, SearchResponse, SqlResponse};
 use crate::handlers::models::Query;
+use crate::utils::identifiers;
 use elasticsearch::http::headers::HeaderMap;
 use elasticsearch::http::request::JsonBody;
 use elasticsearch::http::Method;
@@ -15,15 +17,22 @@ use url::Url;
 #[derive(Debug)]
 pub struct Client {
     es: Elasticsearch,
+    sql_flavor: SqlFlavor,
 }
 
 impl Client {
     pub async fn from_url(url: &str) -> Result<Self, PluginError> {
-        let transport = pool::get_transport(url).await?;
+        let (transport, sql_flavor) = pool::get_transport(url).await?;
 
         Ok(Self {
             es: Elasticsearch::new(transport.clone()),
+            sql_flavor,
         })
+    }
+
+    /// Which `_sql` contract this server speaks.
+    pub fn sql_flavor(&self) -> SqlFlavor {
+        self.sql_flavor
     }
 
     pub async fn ping(&self) -> Result<(), PluginError> {
@@ -85,6 +94,33 @@ impl Client {
             .body(json!({"query": query.body}))
             .send()
             .await?;
+        if resp.status_code() != StatusCode::OK {
+            return Err(PluginError::internal(resp.text().await.unwrap_or_default()));
+        }
+
+        Ok(resp.json().await?)
+    }
+
+    /// Run a statement through the NLPchina `sql` plugin.
+    ///
+    /// It reads the statement from the request body rather than from a JSON
+    /// envelope, rejects a quoted index name, and answers with an ordinary
+    /// search response.
+    pub async fn execute_nlpchina_sql(self, query: Query) -> Result<SearchResponse, PluginError> {
+        let statement = identifiers::unquote_from_target(&query.body);
+
+        let resp = self
+            .es
+            .send::<String, ()>(
+                Method::Post,
+                "/_sql",
+                HeaderMap::new(),
+                None,
+                Some(statement),
+                None,
+            )
+            .await?;
+
         if resp.status_code() != StatusCode::OK {
             return Err(PluginError::internal(resp.text().await.unwrap_or_default()));
         }

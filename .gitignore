@@ -7,3 +7,6 @@ debug/
 .idea/
 .vscode/
 .zed/
+.cargo-local/
+.DS_Store
+ui/.npm-cache/

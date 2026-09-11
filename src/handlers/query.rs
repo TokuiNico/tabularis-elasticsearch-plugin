@@ -6,6 +6,7 @@
 
 use crate::error::PluginError;
 use crate::es::client::Client;
+use crate::es::pool::SqlFlavor;
 use crate::handlers::models::{ExecuteQueryResponse, Query, QueryMode};
 use crate::{
     error::ErrorCode,
@@ -93,16 +94,22 @@ impl QueryExecutor {
         match self.query.mode {
             QueryMode::Rest => {
                 let resp = client.search(self.query.clone()).await;
-                resp.map(|rs| ExecuteQueryResponse::from(rs))
+                resp.map(ExecuteQueryResponse::from)
             }
             QueryMode::Esql => {
                 let resp = client.execute_esql(self.query.clone()).await;
-                resp.map(|rs| ExecuteQueryResponse::from(rs))
+                resp.map(ExecuteQueryResponse::from)
             }
-            QueryMode::None | QueryMode::Sql => {
-                let resp = client.execute_sql(self.query.clone()).await;
-                resp.map(|rs| ExecuteQueryResponse::from(rs))
-            }
+            QueryMode::None | QueryMode::Sql => match client.sql_flavor() {
+                SqlFlavor::XPack => {
+                    let resp = client.execute_sql(self.query.clone()).await;
+                    resp.map(ExecuteQueryResponse::from)
+                }
+                SqlFlavor::Nlpchina => {
+                    let resp = client.execute_nlpchina_sql(self.query.clone()).await;
+                    resp.map(ExecuteQueryResponse::from)
+                }
+            },
         }
     }
 }

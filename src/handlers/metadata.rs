@@ -96,15 +96,12 @@ pub async fn get_columns(id: Value, params: &Value) -> Value {
         }
     };
 
-    let result = resp.get(&table_name).and_then(|idx| {
-        let colums: Vec<ColumnResponse> = idx
-            .mappings
-            .properties
-            .iter()
-            .map(|(name, props)| ColumnResponse::from_values(name.to_string(), props.to_owned()))
-            .collect();
-
-        Some(colums)
+    let result = resp.get(&table_name).map(|idx| {
+        idx.mappings
+            .properties()
+            .into_iter()
+            .map(|(name, props)| ColumnResponse::from_values(name, props))
+            .collect::<Vec<ColumnResponse>>()
     });
 
     ok_response(id, json!(result))

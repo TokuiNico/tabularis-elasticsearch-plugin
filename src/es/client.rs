@@ -107,7 +107,7 @@ impl Client {
     /// envelope, rejects a quoted index name, and answers with an ordinary
     /// search response.
     pub async fn execute_nlpchina_sql(self, query: Query) -> Result<SearchResponse, PluginError> {
-        let statement = identifiers::unquote_from_target(&query.body);
+        let statement = identifiers::strip_identifier_quotes(&query.body);
 
         let resp = self
             .es

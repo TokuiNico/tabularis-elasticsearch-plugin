@@ -21,39 +21,27 @@ pub fn quote_identifier(name: &str, quote: char) -> String {
     out
 }
 
-/// Strip the quoting from the table name in a `FROM` clause.
+/// Strip the quoting Tabularis puts around identifiers.
 ///
-/// The NLPchina `_sql` plugin takes a quoted index name literally and then
-/// reports it as missing, so the name Tabularis quotes has to be handed over
-/// bare. Only the token after `FROM` is touched: the same plugin does accept
-/// `"` as a string delimiter, and whitespace is left exactly as written so
-/// that literals keep their spacing.
-pub fn unquote_from_target(statement: &str) -> String {
+/// The NLPchina `_sql` plugin reads a quoted name as a string literal, so a
+/// quoted index name comes back as missing and a quoted column silently
+/// compares two literals and matches nothing. Tabularis reserves `"` for
+/// identifiers (`.tabularium` sets `identifier_quote`) and writes string
+/// literals with `'`, so every `"` outside a `'…'` literal is dropped; text
+/// inside a literal is left exactly as written.
+pub fn strip_identifier_quotes(statement: &str) -> String {
     let mut out = String::with_capacity(statement.len());
-    let mut rest = statement;
-    let mut after_from = false;
+    let mut in_literal = false;
 
-    while !rest.is_empty() {
-        let gap = rest
-            .find(|c: char| !c.is_whitespace())
-            .unwrap_or(rest.len());
-        out.push_str(&rest[..gap]);
-        rest = &rest[gap..];
-
-        if rest.is_empty() {
-            break;
+    for c in statement.chars() {
+        match c {
+            '\'' => {
+                in_literal = !in_literal;
+                out.push(c);
+            }
+            '"' | '`' if !in_literal => {}
+            _ => out.push(c),
         }
-
-        let end = rest.find(char::is_whitespace).unwrap_or(rest.len());
-        let token = &rest[..end];
-        rest = &rest[end..];
-
-        if after_from {
-            out.push_str(&token.replace(['"', '`'], ""));
-        } else {
-            out.push_str(token);
-        }
-        after_from = token.eq_ignore_ascii_case("from");
     }
 
     out
@@ -61,7 +49,7 @@ pub fn unquote_from_target(statement: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{quote_identifier, unquote_from_target};
+    use super::{quote_identifier, strip_identifier_quotes};
 
     #[test]
     fn quotes_plain_names() {
@@ -80,32 +68,36 @@ mod tests {
         assert_eq!(quote_identifier("", '"'), "\"\"");
     }
 
-    /// Only the `FROM` target loses its quoting. Cases: the statement
-    /// Tabularis generates for a clicked index, a quoted string literal in a
-    /// `WHERE` clause, the spacing of such a literal, a lowercase keyword, a
-    /// backtick-quoted name, and a statement with no `FROM` at all.
+    /// Identifiers lose their quoting, `'…'` literals keep every character.
+    /// Cases: the statement Tabularis generates for a clicked index, a
+    /// filtered and ordered query, a literal holding double quotes, a literal
+    /// holding its own spacing, backticks, and a statement with nothing to
+    /// strip.
     #[test]
-    fn unquotes_only_the_from_target() {
+    fn strips_identifier_quotes_outside_literals() {
         let cases = [
             (
-                r#"SELECT * FROM "log-concentrated-icms-2026.09""#,
-                "SELECT * FROM log-concentrated-icms-2026.09",
+                r#"SELECT * FROM "log-concentrated-thailand-2026.09""#,
+                "SELECT * FROM log-concentrated-thailand-2026.09",
             ),
             (
-                r#"SELECT * FROM "posts" WHERE author = "Erwin""#,
-                r#"SELECT * FROM posts WHERE author = "Erwin""#,
+                r#"SELECT * FROM "posts" WHERE "plantNo" = 'SIM009' ORDER BY "created_at" DESC LIMIT 500"#,
+                "SELECT * FROM posts WHERE plantNo = 'SIM009' ORDER BY created_at DESC LIMIT 500",
             ),
             (
-                r#"SELECT * FROM "posts" WHERE title = 'a  b'"#,
+                r#"SELECT * FROM "posts" WHERE "title" = 'say "hi"'"#,
+                r#"SELECT * FROM posts WHERE title = 'say "hi"'"#,
+            ),
+            (
+                r#"SELECT * FROM "posts" WHERE "title" = 'a  b'"#,
                 r#"SELECT * FROM posts WHERE title = 'a  b'"#,
             ),
-            (r#"select * from "posts""#, "select * from posts"),
             (r#"SELECT * FROM `posts`"#, "SELECT * FROM posts"),
             ("SELECT 1", "SELECT 1"),
         ];
 
         for (statement, want) in cases {
-            assert_eq!(unquote_from_target(statement), want, "{statement}");
+            assert_eq!(strip_identifier_quotes(statement), want, "{statement}");
         }
     }
 }

@@ -13,7 +13,7 @@
     "routines": false,
     "file_based": false,
     "folder_based": false,
-    "no_connection_required": true,
+    "no_connection_required": false,
     "identifier_quote": "\"",
     "alter_primary_key": false,
     "alter_column": false,

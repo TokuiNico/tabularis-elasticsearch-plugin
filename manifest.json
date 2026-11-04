@@ -20,7 +20,7 @@
     "create_foreign_keys": false,
     "manage_tables": false,
     "readonly": true,
-    "connection_string_example": "http://elastic:elastic@localhost:9200"
+    "connection_string_example": "http://localhost:9200"
   },
   "ui_extensions": [
     {

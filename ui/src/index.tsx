@@ -55,7 +55,7 @@ const DsnField = defineSlot(
           autoCapitalize="off"
           autoComplete="off"
           spellCheck={false}
-          placeholder="http://elastic:password@localhost:9200"
+          placeholder="http://localhost:9200"
           style={{
             width: "100%",
             padding: "7px 10px",

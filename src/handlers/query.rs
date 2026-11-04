@@ -17,9 +17,9 @@ use crate::{
 use serde_json::{json, Value};
 
 pub async fn test_connection(id: Value, params: &Value) -> Value {
-    let url = match extractor::extract_url(params) {
-        Some(tb) if !tb.is_empty() => tb,
-        _ => {
+    let endpoint = match extractor::extract_endpoint(params) {
+        Some(endpoint) => endpoint,
+        None => {
             return error_response(
                 id,
                 ErrorCode::InvalidParams,
@@ -28,7 +28,7 @@ pub async fn test_connection(id: Value, params: &Value) -> Value {
         }
     };
 
-    let client = match es::client::Client::from_url(&url).await {
+    let client = match es::client::Client::connect(&endpoint).await {
         Ok(client) => client,
         Err(err) => {
             return error_response(id, err.code, &err.message);
@@ -46,9 +46,9 @@ pub async fn ping(id: Value, params: &Value) -> Value {
 }
 
 pub async fn execute_query(id: Value, params: &Value) -> Value {
-    let url = match extractor::extract_url(params) {
-        Some(tb) if !tb.is_empty() => tb,
-        _ => {
+    let endpoint = match extractor::extract_endpoint(params) {
+        Some(endpoint) => endpoint,
+        None => {
             return error_response(
                 id,
                 ErrorCode::InvalidParams,
@@ -70,7 +70,7 @@ pub async fn execute_query(id: Value, params: &Value) -> Value {
 
     let limit = extractor::extract_limit(params);
 
-    let client = match Client::from_url(&url).await {
+    let client = match Client::connect(&endpoint).await {
         Ok(client) => client,
         Err(err) => {
             return error_response(id, err.code, &err.message);

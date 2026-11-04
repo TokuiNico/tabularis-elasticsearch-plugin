@@ -1,5 +1,5 @@
 use super::pool;
-use super::pool::{SqlFlavor, Version};
+use super::pool::{Endpoint, SqlFlavor, Version};
 use crate::error::PluginError;
 use crate::es::models::{EsqlResponse, Index, IndexMapping, SearchResponse, SqlResponse};
 use crate::handlers::models::Query;
@@ -21,8 +21,8 @@ pub struct Client {
 }
 
 impl Client {
-    pub async fn from_url(url: &str) -> Result<Self, PluginError> {
-        let (transport, version) = pool::get_transport(url).await?;
+    pub async fn connect(endpoint: &Endpoint) -> Result<Self, PluginError> {
+        let (transport, version) = pool::get_transport(endpoint).await?;
 
         Ok(Self {
             es: Elasticsearch::new(transport),
@@ -354,7 +354,7 @@ mod tests {
     #[test]
     fn execute_sql_closes_cursor() {
         crate::test_support::block_on(async {
-            let client = Client::from_url("http://elastic:secret@123@localhost:9200")
+            let client = Client::connect(&Endpoint::from_url("http://elastic:secret@123@localhost:9200"))
                 .await
                 .expect("client");
             let q = Query {
@@ -365,7 +365,7 @@ mod tests {
             let resp = client.execute_sql(q, Some(1)).await.expect("query");
             let cursor = resp.cursor.expect("cursor for the remaining rows");
 
-            let client = Client::from_url("http://elastic:secret@123@localhost:9200")
+            let client = Client::connect(&Endpoint::from_url("http://elastic:secret@123@localhost:9200"))
                 .await
                 .expect("client");
             let next_page = client
@@ -409,7 +409,7 @@ mod tests {
     fn rest_refuses_methods_other_than_get_and_post() {
         crate::test_support::block_on(async {
             for method in ["PUT", "DELETE", "HEAD"] {
-                let client = Client::from_url(UNREACHABLE).await.expect("client");
+                let client = Client::connect(&Endpoint::from_url(UNREACHABLE)).await.expect("client");
                 let q = Query {
                     mode: QueryMode::Rest,
                     body: format!("{method} /posts/_search\n{{}}"),
@@ -424,7 +424,7 @@ mod tests {
     #[test]
     fn get_mapping_success() {
         crate::test_support::block_on(async {
-            let client = Client::from_url("http://elastic:secret@123@localhost:9200").await;
+            let client = Client::connect(&Endpoint::from_url("http://elastic:secret@123@localhost:9200")).await;
             assert!(client.is_ok(), "{:?}", client);
 
             let index_name = "posts";
@@ -444,7 +444,7 @@ mod tests {
             }];
 
             for tc in tcs {
-                let client = Client::from_url("http://elastic:secret@123@localhost:9200").await;
+                let client = Client::connect(&Endpoint::from_url("http://elastic:secret@123@localhost:9200")).await;
                 assert!(client.is_ok(), "{:?}", client);
 
                 let resp = client.unwrap().execute_sql(tc.q, None).await;
@@ -475,7 +475,7 @@ mod tests {
             ];
 
             for tc in tcs {
-                let client = Client::from_url("http://elastic:secret@123@localhost:9200").await;
+                let client = Client::connect(&Endpoint::from_url("http://elastic:secret@123@localhost:9200")).await;
                 assert!(client.is_ok(), "{:?}", client);
 
                 let resp = client.unwrap().execute_esql(tc.q).await;
@@ -498,7 +498,7 @@ mod tests {
             ];
 
             for tc in tcs {
-                let client = Client::from_url("http://elastic:secret@123@localhost:9200").await;
+                let client = Client::connect(&Endpoint::from_url("http://elastic:secret@123@localhost:9200")).await;
                 assert!(client.is_ok(), "{:?}", client);
 
                 let resp = client.unwrap().search(tc.q).await;

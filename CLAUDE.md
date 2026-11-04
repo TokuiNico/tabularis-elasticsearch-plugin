@@ -50,7 +50,7 @@ Write a test that talks to Elasticsearch as a plain `#[test]` that runs its body
 
 ### Connection model — no `host`/`port`/`user`/`pass` fields
 
-Unlike a typical SQL driver, this plugin does not build a connection string from discrete fields. Tabularis stores the **entire** Elasticsearch URL (e.g. `http://elastic:password@localhost:9200`) in the connection's `database` field, and `utils::extractor::extract_url` pulls it straight out of `params.params.database`. `models::ConnectionParams` (host/port/database/username/password/ssl_mode) exists as a shared shape but is largely unused by the actual handlers — don't assume it's the source of truth for connecting.
+Unlike a typical SQL driver, this plugin does not build a connection string from discrete fields. Tabularis stores the **entire** Elasticsearch URL (e.g. `http://localhost:9200`) in the connection's `database` field, and `utils::extractor::extract_endpoint` pulls it out of `params.params.database` together with `username` and `password` (Tabularis fills `password` from the keychain when the connection has `save_in_keychain`). The credentials go out as HTTP Basic auth (`es::pool::Endpoint`), so they never appear in the URL; a URL that still holds `user:pass@` keeps working. `models::ConnectionParams` (host/port/database/username/password/ssl_mode) exists as a shared shape but is largely unused by the actual handlers — don't assume it's the source of truth for connecting.
 
 `es::pool::get_transport` builds the `elasticsearch::http::transport::Transport` manually via `TransportBuilder` + `SingleNodeConnectionPool` instead of the `Transport::single_node(url)` convenience constructor, specifically so that URLs with literal `@` in the password (`http://user:pa@ss@host:9200`) parse correctly.
 

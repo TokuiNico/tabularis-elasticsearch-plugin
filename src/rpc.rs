@@ -32,6 +32,7 @@ pub async fn handle_line(line: &str) -> Value {
         "test_connection" => handlers::query::test_connection(id, &params).await,
 
         // // Metadata — return empty arrays so the driver loads cleanly.
+        "get_databases" => ok_response(id, json!([])),
         "get_tables" => handlers::metadata::get_tables(id, &params).await,
         "get_columns" => handlers::metadata::get_columns(id, &params).await,
         "get_routines" => ok_response(id, json!([])),
@@ -84,4 +85,24 @@ pub fn not_implemented(id: Value, method: &str) -> Value {
         ErrorCode::MethodNotFound,
         &format!("method '{method}' is not implemented by this plugin yet"),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Tabularis asks for the databases of a connection before it lists
+    /// anything. Elasticsearch has none (the URL is the whole address), so
+    /// the answer is an empty list rather than "not implemented", which
+    /// would fail the connection.
+    #[test]
+    fn get_databases_is_an_empty_list() {
+        crate::test_support::block_on(async {
+            let line = r#"{"jsonrpc":"2.0","method":"get_databases","params":{},"id":1}"#;
+
+            let resp = handle_line(line).await;
+
+            assert_eq!(resp["result"], json!([]), "{resp}");
+        })
+    }
 }

@@ -8,7 +8,9 @@ pub fn extract_endpoint(params: &Value) -> Option<Endpoint> {
     let conn = params.get("params")?;
     let text = |key: &str| conn.get(key).and_then(Value::as_str).filter(|s| !s.is_empty());
 
-    let url = match text("database") {
+    // A `database` without a scheme is a database name Tabularis picked, not
+    // the URL this driver keeps in that field.
+    let url = match text("database").filter(|d| d.contains("://")) {
         Some(url) => url.to_string(),
         None => url_from_host(conn)?,
     };
@@ -121,6 +123,11 @@ mod tests {
                 "host without port",
                 json!({"host": "http://es.example.com"}),
                 Some(("http://es.example.com", None)),
+            ),
+            (
+                "database holding a name, not a URL",
+                json!({"database": "default", "host": "https://es.example.com", "port": 443}),
+                Some(("https://es.example.com:443", None)),
             ),
             (
                 "url wins over host",

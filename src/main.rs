@@ -12,6 +12,8 @@ mod es;
 mod handlers;
 mod models;
 mod rpc;
+#[cfg(test)]
+mod test_support;
 mod utils;
 
 // Plain constant for now. Once the plugin gets an `init` RPC call from the

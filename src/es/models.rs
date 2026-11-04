@@ -81,6 +81,8 @@ pub struct Field {
 pub struct SqlResponse {
     pub columns: Vec<Column>,
     pub rows: Vec<Vec<Value>>,
+    /// Present when more rows remain on the server.
+    pub cursor: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -129,6 +131,7 @@ pub struct SearchResponse {
     #[serde(rename = "_shards")]
     pub shards: Shards,
     pub hits: Hits,
+    pub aggregations: Option<Map<String, Value>>,
 }
 
 #[cfg(test)]

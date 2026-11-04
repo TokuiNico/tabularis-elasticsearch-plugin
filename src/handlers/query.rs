@@ -68,6 +68,8 @@ pub async fn execute_query(id: Value, params: &Value) -> Value {
         }
     };
 
+    let limit = extractor::extract_limit(params);
+
     let client = match Client::from_url(&url).await {
         Ok(client) => client,
         Err(err) => {
@@ -75,8 +77,8 @@ pub async fn execute_query(id: Value, params: &Value) -> Value {
         }
     };
 
-    match QueryExecutor::new(query).execute(client).await {
-        Ok(result) => ok_response(id, json!(result)),
+    match QueryExecutor::new(query).execute(client, limit).await {
+        Ok(result) => ok_response(id, json!(result.capped(limit))),
         Err(err) => error_response(id, err.code, &err.message),
     }
 }
@@ -90,7 +92,15 @@ impl QueryExecutor {
         Self { query }
     }
 
-    async fn execute(&self, client: Client) -> Result<ExecuteQueryResponse, PluginError> {
+    /// Run the query. Only X-Pack SQL can ask the server for fewer rows; the
+    /// other modes return the server's own default amount (ES|QL 1000 rows,
+    /// NLPchina 200 hits, a search its `size`, 10 by default), which the
+    /// caller then cuts to `limit`.
+    async fn execute(
+        &self,
+        client: Client,
+        limit: Option<usize>,
+    ) -> Result<ExecuteQueryResponse, PluginError> {
         match self.query.mode {
             QueryMode::Rest => {
                 let resp = client.search(self.query.clone()).await;
@@ -102,7 +112,7 @@ impl QueryExecutor {
             }
             QueryMode::None | QueryMode::Sql => match client.sql_flavor() {
                 SqlFlavor::XPack => {
-                    let resp = client.execute_sql(self.query.clone()).await;
+                    let resp = client.execute_sql(self.query.clone(), limit).await;
                     resp.map(ExecuteQueryResponse::from)
                 }
                 SqlFlavor::Nlpchina => {
@@ -119,17 +129,50 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    #[tokio::test]
-    async fn ping_success() {
-        let params = json!({
-            "params": {
-                "database": "http://elastic:secret@123@localhost:9200"
-            },
-            "query": ""
-        });
+    /// `execute_query` returns at most `limit` rows and says the result was
+    /// truncated, for every query mode. The `posts` index holds 3 documents.
+    /// Cases: SQL, ES|QL, and `#!rest` with a `size` above the limit.
+    #[test]
+    fn execute_query_respects_limit() {
+        crate::test_support::block_on(async {
+            let cases = [
+                ("sql", "SELECT * FROM posts"),
+                ("esql", "#!esql\nFROM posts"),
+                ("rest", "#!rest\nPOST /posts/_search\n{\"size\":3}"),
+            ];
 
-        let result = ping(json!(1), &params).await;
+            for (name, query) in cases {
+                let params = json!({
+                    "params": { "database": "http://elastic:secret@123@localhost:9200" },
+                    "query": query,
+                    "limit": 1,
+                });
 
-        assert_eq!(result["id"], 1);
+                let resp = execute_query(json!(1), &params).await;
+
+                assert_eq!(
+                    resp["result"]["rows"].as_array().map(Vec::len),
+                    Some(1),
+                    "{name}: {resp}"
+                );
+                assert_eq!(resp["result"]["truncated"], true, "{name}");
+            }
+        })
+    }
+
+    #[test]
+    fn ping_success() {
+        crate::test_support::block_on(async {
+            let params = json!({
+                "params": {
+                    "database": "http://elastic:secret@123@localhost:9200"
+                },
+                "query": ""
+            });
+
+            let result = ping(json!(1), &params).await;
+
+            assert_eq!(result["id"], 1);
+        })
     }
 }

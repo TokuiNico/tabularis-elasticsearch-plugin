@@ -1,7 +1,7 @@
 {
   "name": "elasticsearch",
   "engine": "elasticsearch",
-  "version": "0.1.5",
+  "version": "0.1.5+thingnario.1",
   "description": "Browse Elasticsearch indices, inspect mappings, and run queries directly from Tabularis.",
   "category": "search",
   "kind": "driver",

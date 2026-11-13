@@ -229,7 +229,10 @@ mod tests {
                 assert_eq!(version, Some((7, 17)), "{name}");
                 match want {
                     Some(header) => assert!(head.contains(header), "{name}: {head}"),
-                    None => assert!(!head.to_ascii_lowercase().contains("authorization"), "{name}: {head}"),
+                    None => assert!(
+                        !head.to_ascii_lowercase().contains("authorization"),
+                        "{name}: {head}"
+                    ),
                 }
             })
         }

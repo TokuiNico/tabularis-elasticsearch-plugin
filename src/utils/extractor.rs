@@ -6,7 +6,11 @@ use serde_json::Value;
 /// with. Tabularis fills `password` from the keychain.
 pub fn extract_endpoint(params: &Value) -> Option<Endpoint> {
     let conn = params.get("params")?;
-    let text = |key: &str| conn.get(key).and_then(Value::as_str).filter(|s| !s.is_empty());
+    let text = |key: &str| {
+        conn.get(key)
+            .and_then(Value::as_str)
+            .filter(|s| !s.is_empty())
+    };
 
     // A `database` without a scheme is a database name Tabularis picked, not
     // the URL this driver keeps in that field.
@@ -14,8 +18,12 @@ pub fn extract_endpoint(params: &Value) -> Option<Endpoint> {
         Some(url) => url.to_string(),
         None => url_from_host(conn)?,
     };
-    let auth = text("username")
-        .map(|user| (user.to_string(), text("password").unwrap_or_default().to_string()));
+    let auth = text("username").map(|user| {
+        (
+            user.to_string(),
+            text("password").unwrap_or_default().to_string(),
+        )
+    });
 
     Some(Endpoint { url, auth })
 }
@@ -140,7 +148,10 @@ mod tests {
             let got = extract_endpoint(&json!({ "params": conn }))
                 .map(|e| (e.url, e.auth.map(|(u, p)| (u, p))));
             let want = want.map(|(u, a)| {
-                (u.to_string(), a.map(|(x, y)| (x.to_string(), y.to_string())))
+                (
+                    u.to_string(),
+                    a.map(|(x, y)| (x.to_string(), y.to_string())),
+                )
             });
             assert_eq!(got, want, "{name}");
         }

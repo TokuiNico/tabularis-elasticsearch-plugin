@@ -18,9 +18,9 @@ use serde_json::{
 
 /// Returns the list of index in the elasticsearch.
 pub async fn get_tables(id: Value, params: &Value) -> Value {
-    let url = match extractor::extract_url(params) {
-        Some(tb) if !tb.is_empty() => tb,
-        _ => {
+    let endpoint = match extractor::extract_endpoint(params) {
+        Some(endpoint) => endpoint,
+        None => {
             return error_response(
                 id,
                 ErrorCode::InvalidParams,
@@ -29,7 +29,7 @@ pub async fn get_tables(id: Value, params: &Value) -> Value {
         }
     };
 
-    let client = match es::client::Client::from_url(&url).await {
+    let client = match es::client::Client::connect(&endpoint).await {
         Ok(client) => client,
         Err(err) => {
             return error_response(id, err.code, &err.message);
@@ -59,9 +59,9 @@ pub async fn get_tables(id: Value, params: &Value) -> Value {
 }
 
 pub async fn get_columns(id: Value, params: &Value) -> Value {
-    let url = match extractor::extract_url(params) {
-        Some(tb) if !tb.is_empty() => tb,
-        _ => {
+    let endpoint = match extractor::extract_endpoint(params) {
+        Some(endpoint) => endpoint,
+        None => {
             return error_response(
                 id,
                 ErrorCode::InvalidParams,
@@ -81,7 +81,7 @@ pub async fn get_columns(id: Value, params: &Value) -> Value {
         }
     };
 
-    let client = match es::client::Client::from_url(&url).await {
+    let client = match es::client::Client::connect(&endpoint).await {
         Ok(client) => client,
         Err(err) => {
             return error_response(id, err.code, &err.message);
@@ -96,15 +96,12 @@ pub async fn get_columns(id: Value, params: &Value) -> Value {
         }
     };
 
-    let result = resp.get(&table_name).and_then(|idx| {
-        let colums: Vec<ColumnResponse> = idx
-            .mappings
-            .properties
-            .iter()
-            .map(|(name, props)| ColumnResponse::from_values(name.to_string(), props.to_owned()))
-            .collect();
-
-        Some(colums)
+    let result = resp.get(&table_name).map(|idx| {
+        idx.mappings
+            .properties()
+            .into_iter()
+            .map(|(name, props)| ColumnResponse::from_values(name, props))
+            .collect::<Vec<ColumnResponse>>()
     });
 
     ok_response(id, json!(result))

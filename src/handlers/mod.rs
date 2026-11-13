@@ -3,3 +3,4 @@ pub mod ddl;
 pub mod metadata;
 pub mod models;
 pub mod query;
+pub mod table;

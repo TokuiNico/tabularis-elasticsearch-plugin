@@ -87,6 +87,8 @@ build-ui:
 [linux]
 dev-install: build
     mkdir -p ~/.local/share/tabularis/plugins/elasticsearch
+    # Remove before copying: a running plugin process keeps the file busy.
+    rm -f ~/.local/share/tabularis/plugins/elasticsearch/elasticsearch-plugin
     cp target/debug/elasticsearch-plugin ~/.local/share/tabularis/plugins/elasticsearch/
     cp .tabularium ~/.local/share/tabularis/plugins/elasticsearch/
     @if [ -f ui/dist/index.js ]; then \
@@ -98,14 +100,17 @@ dev-install: build
 
 [macos]
 dev-install: build
-    mkdir -p "$HOME/Library/Application Support/com.debba.tabularis/plugins/elasticsearch"
-    cp target/debug/elasticsearch-plugin "$HOME/Library/Application Support/com.debba.tabularis/plugins/elasticsearch/"
-    cp .tabularium "$HOME/Library/Application Support/com.debba.tabularis/plugins/elasticsearch/"
+    mkdir -p "$HOME/Library/Application Support/tabularis/plugins/elasticsearch"
+    # Remove before copying: overwriting the file of a plugin process that is
+    # still running makes macOS kill the new binary on launch (exit 137).
+    rm -f "$HOME/Library/Application Support/tabularis/plugins/elasticsearch/elasticsearch-plugin"
+    cp target/debug/elasticsearch-plugin "$HOME/Library/Application Support/tabularis/plugins/elasticsearch/"
+    cp .tabularium "$HOME/Library/Application Support/tabularis/plugins/elasticsearch/"
     @if [ -f ui/dist/index.js ]; then \
-        mkdir -p "$HOME/Library/Application Support/com.debba.tabularis/plugins/elasticsearch/ui/dist"; \
-        cp ui/dist/index.js "$HOME/Library/Application Support/com.debba.tabularis/plugins/elasticsearch/ui/dist/"; \
+        mkdir -p "$HOME/Library/Application Support/tabularis/plugins/elasticsearch/ui/dist"; \
+        cp ui/dist/index.js "$HOME/Library/Application Support/tabularis/plugins/elasticsearch/ui/dist/"; \
     fi
-    @echo "Installed to ~/Library/Application Support/com.debba.tabularis/plugins/elasticsearch"
+    @echo "Installed to ~/Library/Application Support/tabularis/plugins/elasticsearch"
     @echo "Restart Tabularis (or toggle the plugin in Settings) to pick up changes."
 
 [windows]
@@ -130,7 +135,7 @@ uninstall:
 
 [macos]
 uninstall:
-    rm -rf "$HOME/Library/Application Support/com.debba.tabularis/plugins/elasticsearch"
+    rm -rf "$HOME/Library/Application Support/tabularis/plugins/elasticsearch"
 
 [windows]
 uninstall:

@@ -42,7 +42,13 @@ POST /post_index/_search
 {"query":{"match_all":{}},"fields":[{"field":"id"},{"field":"content"}],"sort":[{"_doc":{"order":"asc"}}],"track_total_hits":-1,"_source":true}
 ```
 
-The first line must contain the HTTP method and endpoint. The remaining content is sent as the request body.
+The first line must contain the HTTP method and endpoint. The remaining content is sent as the request body. Only `GET` and `POST` to `/_search` or `/<index>/_search` are accepted.
+
+A search with `aggs` (or a SQL `GROUP BY`/`COUNT(*)` on a server older than 6.3, which runs through the NLPchina `sql` plugin) is shown as one row per innermost bucket: the bucket keys, then the metrics.
+
+On X-Pack SQL (6.7 and later), a field holding an array shows its first value instead of failing the query. Use `#!rest` to see the whole array.
+
+The plugin only reads. On servers older than 6.3 it runs only `SELECT`, `SHOW` and `DESCRIBE` statements.
 
 ## Installation
 ## Install from the registry
@@ -59,7 +65,7 @@ If you point Tabularis at a different Tabularium instance via `customRegistryUrl
 Build and install the plugin locally:
 
 ```bash
-just dev-install    # builds and installs to $HOME/Library/Application Support/com.debba.tabularis/plugins/elasticsearch
+just dev-install    # builds and installs to $HOME/Library/Application Support/tabularis/plugins/elasticsearch
 ```
 
 Open Tabularis and choose the "Elasticsearch" driver in the connection picker. Configure a connection `http://<username>:<password>@<host>:<port>` to start exploring indices.

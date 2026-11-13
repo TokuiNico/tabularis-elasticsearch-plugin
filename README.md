@@ -65,7 +65,7 @@ If you point Tabularis at a different Tabularium instance via `customRegistryUrl
 Build and install the plugin locally:
 
 ```bash
-just dev-install    # builds and installs to $HOME/Library/Application Support/tabularis/plugins/elasticsearch
+just dev-install    # builds and installs to $HOME/Library/Application Support/tabularis/plugins/drivers/elasticsearch
 ```
 
 Open Tabularis and choose the "Elasticsearch" driver in the connection picker. Configure a connection `http://<username>:<password>@<host>:<port>` to start exploring indices.
@@ -73,13 +73,13 @@ Open Tabularis and choose the "Elasticsearch" driver in the connection picker. C
 ### Explain
 
 Copy the binary and `.tabularium` into the Tabularis plugins folder under a
-`elasticsearch/` subdirectory:
+`drivers/elasticsearch/` subdirectory:
 
 | OS | Path |
 |----|------|
-| Linux | `~/.local/share/tabularis/plugins/elasticsearch/` |
-| macOS | `~/Library/Application Support/tabularis/plugins/elasticsearch/` |
-| Windows | `%APPDATA%\debba\tabularis\data\plugins\elasticsearch\` |
+| Linux | `~/.local/share/tabularis/plugins/drivers/elasticsearch/` |
+| macOS | `~/Library/Application Support/tabularis/plugins/drivers/elasticsearch/` |
+| Windows | `%APPDATA%\debba\tabularis\data\plugins\drivers\elasticsearch\` |
 
 Restart Tabularis (or install via Settings) and pick **Elasticsearch** in the
 connection form.

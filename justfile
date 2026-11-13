@@ -86,38 +86,38 @@ build-ui:
 # Build + copy binary, manifest and (if present) UI bundle into Tabularis's plugin folder.
 [linux]
 dev-install: build
-    mkdir -p ~/.local/share/tabularis/plugins/elasticsearch
+    mkdir -p ~/.local/share/tabularis/plugins/drivers/elasticsearch
     # Remove before copying: a running plugin process keeps the file busy.
-    rm -f ~/.local/share/tabularis/plugins/elasticsearch/elasticsearch-plugin
-    cp target/debug/elasticsearch-plugin ~/.local/share/tabularis/plugins/elasticsearch/
-    cp .tabularium ~/.local/share/tabularis/plugins/elasticsearch/
+    rm -f ~/.local/share/tabularis/plugins/drivers/elasticsearch/elasticsearch-plugin
+    cp target/debug/elasticsearch-plugin ~/.local/share/tabularis/plugins/drivers/elasticsearch/
+    cp .tabularium ~/.local/share/tabularis/plugins/drivers/elasticsearch/
     @if [ -f ui/dist/index.js ]; then \
-        mkdir -p ~/.local/share/tabularis/plugins/elasticsearch/ui/dist; \
-        cp ui/dist/index.js ~/.local/share/tabularis/plugins/elasticsearch/ui/dist/; \
+        mkdir -p ~/.local/share/tabularis/plugins/drivers/elasticsearch/ui/dist; \
+        cp ui/dist/index.js ~/.local/share/tabularis/plugins/drivers/elasticsearch/ui/dist/; \
     fi
-    @echo "Installed to ~/.local/share/tabularis/plugins/elasticsearch"
+    @echo "Installed to ~/.local/share/tabularis/plugins/drivers/elasticsearch"
     @echo "Restart Tabularis (or toggle the plugin in Settings) to pick up changes."
 
 [macos]
 dev-install: build
-    mkdir -p "$HOME/Library/Application Support/tabularis/plugins/elasticsearch"
+    mkdir -p "$HOME/Library/Application Support/tabularis/plugins/drivers/elasticsearch"
     # Remove before copying: overwriting the file of a plugin process that is
     # still running makes macOS kill the new binary on launch (exit 137).
-    rm -f "$HOME/Library/Application Support/tabularis/plugins/elasticsearch/elasticsearch-plugin"
-    cp target/debug/elasticsearch-plugin "$HOME/Library/Application Support/tabularis/plugins/elasticsearch/"
-    cp .tabularium "$HOME/Library/Application Support/tabularis/plugins/elasticsearch/"
+    rm -f "$HOME/Library/Application Support/tabularis/plugins/drivers/elasticsearch/elasticsearch-plugin"
+    cp target/debug/elasticsearch-plugin "$HOME/Library/Application Support/tabularis/plugins/drivers/elasticsearch/"
+    cp .tabularium "$HOME/Library/Application Support/tabularis/plugins/drivers/elasticsearch/"
     @if [ -f ui/dist/index.js ]; then \
-        mkdir -p "$HOME/Library/Application Support/tabularis/plugins/elasticsearch/ui/dist"; \
-        cp ui/dist/index.js "$HOME/Library/Application Support/tabularis/plugins/elasticsearch/ui/dist/"; \
+        mkdir -p "$HOME/Library/Application Support/tabularis/plugins/drivers/elasticsearch/ui/dist"; \
+        cp ui/dist/index.js "$HOME/Library/Application Support/tabularis/plugins/drivers/elasticsearch/ui/dist/"; \
     fi
-    @echo "Installed to ~/Library/Application Support/tabularis/plugins/elasticsearch"
+    @echo "Installed to ~/Library/Application Support/tabularis/plugins/drivers/elasticsearch"
     @echo "Restart Tabularis (or toggle the plugin in Settings) to pick up changes."
 
 [windows]
 dev-install: build
     #!pwsh
 
-    $dest = Join-Path $env:APPDATA "debba\tabularis\data\plugins\elasticsearch"
+    $dest = Join-Path $env:APPDATA "debba\tabularis\data\plugins\drivers\elasticsearch"
     New-Item -ItemType Directory -Force -Path $dest | Out-Null
     Copy-Item "target\debug\elasticsearch-plugin.exe" $dest
     Copy-Item ".tabularium" $dest
@@ -131,13 +131,13 @@ dev-install: build
 # Remove the installed plugin.
 [linux]
 uninstall:
-    rm -rf ~/.local/share/tabularis/plugins/elasticsearch
+    rm -rf ~/.local/share/tabularis/plugins/drivers/elasticsearch
 
 [macos]
 uninstall:
-    rm -rf "$HOME/Library/Application Support/tabularis/plugins/elasticsearch"
+    rm -rf "$HOME/Library/Application Support/tabularis/plugins/drivers/elasticsearch"
 
 [windows]
 uninstall:
-    $dest = Join-Path $env:APPDATA "debba\tabularis\data\plugins\elasticsearch"
+    $dest = Join-Path $env:APPDATA "debba\tabularis\data\plugins\drivers\elasticsearch"
     if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
